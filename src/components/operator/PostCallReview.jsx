@@ -325,7 +325,7 @@ export default function ConciergeAgentPrototype() {
                     <div style={{ background: T.primaryLight, borderRadius: 8, padding: 14, border: "1px solid #C4B5FD" }}>
                       <div style={{ fontSize: 11, color: T.primary, fontWeight: 600, marginBottom: 8 }}>To: Marcus Thompson • Via SMS • Sent just now</div>
                       <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0 }}>
-                        Hi Marcus, we've received your request about the water heater in unit B-214. Your technician <strong>David M.</strong> is scheduled for <strong>today between 2:00–4:00 PM</strong>. He's familiar with your Rheem unit and will bring diagnostic tools. Your water heater is under warranty, so there will be no charge. Reply to this message if you need to reschedule. — Ridgewood Heights Maintenance
+                        Hi Marcus, we&apos;ve received your request about the water heater in unit B-214. Your technician <strong>David M.</strong> is scheduled for <strong>today between 2:00–4:00 PM</strong>. He&apos;s familiar with your Rheem unit and will bring diagnostic tools. Your water heater is under warranty, so there will be no charge. Reply to this message if you need to reschedule. — Ridgewood Heights Maintenance
                       </p>
                     </div>
                   </div>
@@ -347,7 +347,7 @@ export default function ConciergeAgentPrototype() {
                         {step === -1 && !ready && (
                           <div style={{ textAlign: "center", padding: "32px 16px", color: T.textMuted }}>
                             <div style={{ fontSize: 28, marginBottom: 8 }}>🤖</div>
-                            <p style={{ fontSize: 13, margin: 0, lineHeight: 1.6 }}>Click <strong style={{ color: T.primary }}>"Run Concierge Agent"</strong> to begin AI enrichment</p>
+                            <p style={{ fontSize: 13, margin: 0, lineHeight: 1.6 }}>Click <strong style={{ color: T.primary }}>&ldquo;Run Concierge Agent&rdquo;</strong> to begin AI enrichment</p>
                           </div>
                         )}
                         {AGENT_STEPS.map((s, i) => {
