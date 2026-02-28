@@ -371,7 +371,7 @@ const Res=({assigned})=>(<div style={{padding:"0 0 24px"}}>
 <div style={{display:"flex",borderBottom:`2px solid ${C.border}`,marginBottom:16}}>
 {["Messages","Activity"].map(t=><button key={t} onClick={()=>setMsgTab(t.toLowerCase())} style={{background:"none",border:"none",padding:"10px 16px",fontSize:14,fontWeight:msgTab===t.toLowerCase()?700:400,color:msgTab===t.toLowerCase()?C.textPrimary:C.textMuted,borderBottom:msgTab===t.toLowerCase()?`2px solid ${C.textPrimary}`:"2px solid transparent",cursor:"pointer",marginBottom:-2}}>{t}</button>)}</div>
 {msgTab==="messages"&&(!assigned
-?<>{sentMsgs.length===0&&<div style={{textAlign:"center",color:C.textMuted,fontSize:13,padding:"24px 0"}}>No messages yet</div>}
+?<><MsgB text={`Hi Marcus! The part for your WO-5103 Water Heater has been purchased. We expect to receive it on ${fmt(arrivalDate)}. We'll send another confirmation after the part is delivered and a technician has been assigned!`} date={callDate}/>
 {sentMsgs.map((m,i)=>(<div key={i} style={{marginBottom:16,display:"flex",flexDirection:"column",alignItems:"flex-end"}}>
 <div style={{background:C.purple,borderRadius:12,padding:14,maxWidth:"90%"}}><p style={{fontSize:14,color:"#fff",lineHeight:1.6,margin:0}}>{m.text}</p></div>
 <div style={{fontSize:11,color:C.textMuted,paddingRight:4,marginTop:4}}>{fmtTS(m.date)}</div></div>))}</>
