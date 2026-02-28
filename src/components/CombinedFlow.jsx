@@ -37,8 +37,8 @@ const CALL_DURATION=48000;
 const WO_FIELDS_ORDER=[
 {key:"resident",label:"Resident"},{key:"unit",label:"Unit"},{key:"lease",label:"Lease Status"},
 {key:"inventory",label:"Unit Inventory"},{key:"category",label:"Category"},{key:"priority",label:"Priority"},
-{key:"asset",label:"Asset"},{key:"warranty",label:"Warranty"},{key:"diagnosis",label:"AI Diagnosis"},
-{key:"fuelType",label:"Fuel Type"},{key:"partNeeded",label:"Part Needed"},{key:"tech",label:"Technician"},
+{key:"summary",label:"Summary"},{key:"asset",label:"Asset"},{key:"warranty",label:"Warranty"},{key:"diagnosis",label:"AI Diagnosis"},
+{key:"fuelType",label:"Fuel Type"},{key:"partNeeded",label:"Part Needed"},
 {key:"workOrder",label:"Work Order"},{key:"sms",label:"Resident Notification"}];
 const STEPS=[
 {id:0,actor:"Operator",label:"Live Call",icon:"📞"},
@@ -69,7 +69,7 @@ const TopNav=({extra})=>(
 </div></nav>);
 const SB=({nav,setNav})=>{
 const sn=[["dashboards","Dashboards","📊"],["units","Units & Areas","📋"],["vendors","Vendors","👥"],["documents","Documents","📁"],["incidents","Incidents","⚠️"],["work-assignment","Work Assignment","🖥️"],["property-profile","Property Profile","🏠"]];
-const an=[["inspections","Inspections","✅"],["tasks","Tasks","📝"],["projects","Projects","📐"],["call-complete","Resident Call History","📞"],["insights","Insights","📈"],["inventory","Inventory","⭐"]];
+const an=[["inspections","Inspections","✅"],["tasks","Tasks","📝"],["projects","Projects","📐"],["call-complete","Work Order","📋"],["call-history","Resident Call History","📞"],["insights","Insights","📈"],["inventory","Inventory","⭐"]];
 const ni=(a)=>({display:"flex",alignItems:"center",gap:10,padding:"7px 16px",borderRadius:6,fontSize:13,fontWeight:a?600:400,color:a?T.primary:T.sidebarText,background:a?T.primaryLight:"transparent",cursor:"pointer",margin:"1px 8px",borderLeft:a?`3px solid ${T.primary}`:"3px solid transparent"});
 return(<aside style={{width:220,background:T.sidebarBg,borderRight:`1px solid ${T.sidebarBorder}`,flexShrink:0,overflowY:"auto"}}>
 <div style={{padding:"16px 0"}}>
@@ -116,7 +116,7 @@ const MsgB=({text,date})=>(
 <div style={{fontSize:11,color:C.textMuted,paddingLeft:4}}>{fmtTS(date)}</div></div>);
 const TR=()=>(<>
 {[["Heating & Cooling","Annual maintenance...","Normal","Open","Urban Oasis","Aron Finneran"],["Heating & Cooling","Annual maintenance...","Normal","Open","The Neon Niche","Bob's Carpet"],["Heating & Cooling","Annual maintenance...","Normal","Open","The Neon Niche","Unassigned"]].map(([t,d,p,s,l,a],i)=>(
-<div key={i} style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,alignItems:"center",fontSize:13}}>
+<div key={i} style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,alignItems:"center",fontSize:13,minWidth:700}}>
 <div><input type="checkbox" readOnly style={{accentColor:T.primary}}/></div>
 <div><div style={{fontWeight:500}}>🌡️ {t}</div><div style={{fontSize:11,color:T.textMuted}}>{d}</div></div>
 <div><span style={pill("#F3F4F6",T.textSecondary)}>● {p}</span></div>
@@ -129,6 +129,8 @@ export default function CombinedFlow(){
 const[step,setStep]=useState(0);
 const[nav,setNav]=useState("call-complete");
 const[msgTab,setMsgTab]=useState("messages");
+const[msgInput,setMsgInput]=useState("");
+const[sentMsgs,setSentMsgs]=useState([]);
 const[callState,setCallState]=useState("idle");
 const[elapsed,setElapsed]=useState(0);
 const[tLines,setTLines]=useState([]);
@@ -140,7 +142,7 @@ const[showModal,setShowModal]=useState(false);
 const csRef=useRef(null);const tmRef=useRef(null);const trRef=useRef(null);const agRef=useRef(null);const trgRef=useRef(new Set());
 
 const startCall=()=>setCallState("ringing");
-const acceptCall=()=>{setCallState("live");csRef.current=Date.now();trgRef.current=new Set();setTLines([]);setAActs([]);setWoF({});setSub(false);setEditF(null);setShowModal(false);};
+const acceptCall=()=>{setCallState("live");csRef.current=Date.now();trgRef.current=new Set();setTLines([]);setAActs([]);setWoF({summary:"Water heater is not heating. Probable cause pilot assembly or igniter"});setSub(false);setEditF(null);setShowModal(false);};
 const rejectCall=()=>setCallState("idle");
 
 useEffect(()=>{
@@ -192,8 +194,8 @@ const P2=()=>(<>
 {callState==="ended"&&!submitted&&<div style={{...pill(T.successBg,T.successText),padding:"8px 16px",fontSize:13}}><Chk s={14} c={T.tealText}/>Call ended — Review & submit</div>}
 {callState==="ended"&&submitted&&<div style={{...pill(T.successBg,T.successText),padding:"8px 16px",fontSize:13}}><Chk s={14} c={T.tealText}/>WO-5103 submitted</div>}
 </div></div>
-<div style={{padding:24}}>
-{callState==="idle"&&(<div style={{...cardS,padding:48,textAlign:"center",maxWidth:600,margin:"60px auto"}}>
+<div style={{padding:24,maxWidth:1280,margin:"0 auto"}}>
+{callState==="idle"&&(<div style={{...cardS,padding:48,textAlign:"center",maxWidth:680,margin:"40px auto"}}>
 <div style={{fontSize:48,marginBottom:16}}>🤖📞</div>
 <h2 style={{fontSize:20,fontWeight:700,marginBottom:8}}>Concierge Agent — Live Call Mode</h2>
 <p style={{fontSize:14,color:T.textSecondary,lineHeight:1.7,marginBottom:24}}>When a resident calls Happy Force, the Concierge Agent listens alongside the human operator. It automatically pulls unit data, checks warranties, finds technicians, and pre-drafts the work order — so by the time the call ends, everything is ready for one-tap dispatch.</p>
@@ -208,7 +210,7 @@ const P2=()=>(<>
 <button onClick={acceptCall} style={{background:T.teal,color:"#fff",border:"none",borderRadius:T.borderRadius,padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer"}}>📞 Accept</button>
 <button onClick={rejectCall} style={{background:T.danger,color:"#fff",border:"none",borderRadius:T.borderRadius,padding:"12px 32px",fontSize:14,fontWeight:600,cursor:"pointer"}}>✕ Reject</button></div></div>)}
 {(callState==="live"||callState==="ended")&&(
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
+<div className="call-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
 <div style={{display:"flex",flexDirection:"column",gap:16}}>
 <div style={{...cardS,padding:16}}>
 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
@@ -217,7 +219,7 @@ const P2=()=>(<>
 <div><div style={{fontSize:14,fontWeight:700}}>Marcus Thompson</div><div style={{fontSize:12,color:T.textMuted}}>(512) 555-0187 • Unit B-214</div></div></div>
 <div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:700,fontVariantNumeric:"tabular-nums",color:callState==="live"?T.danger:T.textPrimary}}>{fmtT(elapsed)}</div>
 <div style={{fontSize:11,color:T.textMuted}}>Agent: Jennifer R.</div></div></div>
-<div style={{background:T.bodyBg,borderRadius:6,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"center"}}><Wave/></div>
+<div style={{background:T.bodyBg,borderRadius:6,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"center"}}>{Wave()}</div>
 {callState==="ended"&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:T.successText,fontWeight:600}}>✓ Call completed — {fmtT(CALL_DURATION)}</div>}</div>
 <div style={{...cardS,display:"flex",flexDirection:"column",maxHeight:420}}>
 <div style={{padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -271,7 +273,7 @@ const P2=()=>(<>
 </div></div></div>)}
 </div></>);
 
-const Op1=()=>(<div style={{padding:24}}>
+const Op1=()=>(<div style={{padding:24,maxWidth:1280,margin:"0 auto"}}>
 <div style={{...cardS,padding:0,marginBottom:20,borderLeft:`4px solid ${T.primary}`,animation:"fi .4s ease",overflow:"hidden"}}>
 <div style={{padding:"16px 20px",display:"flex",alignItems:"flex-start",gap:14}}>
 <div style={{width:40,height:40,borderRadius:"50%",background:T.primaryLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📦</div>
@@ -288,16 +290,17 @@ const Op1=()=>(<div style={{padding:24}}>
 <span style={{fontSize:12,color:T.primary,fontWeight:500,cursor:"pointer"}}>View Work Order →</span></div></div>
 <div style={cardS}>
 <div style={{padding:"10px 16px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:700}}>Tasks</span><span style={pill(T.tealBg,T.tealText)}>2113</span></div>
-<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"8px 16px",borderBottom:`1px solid ${T.cardBorder}`,fontSize:11,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5}}><div/><div>Title</div><div>Priority</div><div>Status</div><div>Location</div><div>Assignee</div><div>Created</div></div>
-<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,background:"#FEFCE8",alignItems:"center",fontSize:13}}>
+<div style={{overflowX:"auto"}}>
+<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"8px 16px",borderBottom:`1px solid ${T.cardBorder}`,fontSize:11,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,minWidth:700}}><div/><div>Title</div><div>Priority</div><div>Status</div><div>Location</div><div>Assignee</div><div>Created</div></div>
+<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,background:"#FEFCE8",alignItems:"center",fontSize:13,minWidth:700}}>
 <div><input type="checkbox" readOnly style={{accentColor:T.primary}}/></div>
 <div><div style={{fontWeight:600,display:"flex",alignItems:"center",gap:6}}>🔥 Water Heater — No Hot Water <span style={pill(T.warningBg,T.warningText)}>Waiting for Parts</span></div><div style={{fontSize:11,color:T.textMuted}}>WO-5103 • Plumbing</div></div>
 <div><span style={pill(T.dangerBg,T.dangerText)}>● High</span></div><div><span style={pill(T.warningBg,T.warningText)}>⏳ Parts</span></div>
 <div style={{fontSize:12,color:T.textSecondary}}>Ridgewood Heights<br/><span style={{color:T.textMuted}}>B-214</span></div>
 <div style={{fontSize:12,color:T.textMuted}}>Unassigned</div><div style={{fontSize:12,color:T.textMuted}}>{fmtShort(callDate)}</div></div>
-<TR/></div></div>);
+<TR/></div></div></div>);
 
-const Op2=()=>(<div style={{padding:24}}>
+const Op2=()=>(<div style={{padding:24,maxWidth:1280,margin:"0 auto"}}>
 <div style={{...cardS,padding:0,marginBottom:20,borderLeft:`4px solid ${T.teal}`,animation:"fi .4s ease",overflow:"hidden"}}>
 <div style={{padding:"16px 20px",display:"flex",alignItems:"flex-start",gap:14}}>
 <div style={{width:40,height:40,borderRadius:"50%",background:T.tealBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✅</div>
@@ -314,15 +317,38 @@ const Op2=()=>(<div style={{padding:24}}>
 <span style={{fontSize:12,color:T.primary,fontWeight:500,cursor:"pointer"}}>View Work Order →</span></div></div>
 <div style={cardS}>
 <div style={{padding:"10px 16px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:700}}>Tasks</span><span style={pill(T.tealBg,T.tealText)}>2113</span></div>
-<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"8px 16px",borderBottom:`1px solid ${T.cardBorder}`,fontSize:11,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5}}><div/><div>Title</div><div>Priority</div><div>Status</div><div>Location</div><div>Assignee</div><div>Created</div></div>
-<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,background:"#ECFDF5",alignItems:"center",fontSize:13}}>
+<div style={{overflowX:"auto"}}>
+<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"8px 16px",borderBottom:`1px solid ${T.cardBorder}`,fontSize:11,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,minWidth:700}}><div/><div>Title</div><div>Priority</div><div>Status</div><div>Location</div><div>Assignee</div><div>Created</div></div>
+<div style={{display:"grid",gridTemplateColumns:"40px 1fr 100px 100px 140px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,background:"#ECFDF5",alignItems:"center",fontSize:13,minWidth:700}}>
 <div><input type="checkbox" readOnly style={{accentColor:T.primary}}/></div>
 <div><div style={{fontWeight:600,display:"flex",alignItems:"center",gap:6}}>🔥 Water Heater — No Hot Water <span style={pill(T.successBg,T.successText)}>Assigned</span></div><div style={{fontSize:11,color:T.textMuted}}>WO-5103 • Plumbing</div></div>
 <div><span style={pill(T.dangerBg,T.dangerText)}>● High</span></div><div><span style={pill(T.successBg,T.successText)}>● Assigned</span></div>
 <div style={{fontSize:12,color:T.textSecondary}}>Ridgewood Heights<br/><span style={{color:T.textMuted}}>B-214</span></div>
 <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:24,height:24,borderRadius:"50%",background:T.primaryLight,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:T.primary}}>A</div><span style={{fontSize:12}}>Alan</span></div>
 <div style={{fontSize:12,color:T.textMuted}}>{fmtShort(callDate)}</div></div>
-<TR/></div></div>);
+<TR/></div></div></div>);
+
+const CALL_HISTORY=[
+{id:"WO-5103",resident:"Marcus Thompson",unit:"B-214",issue:"Water Heater — No Hot Water",category:"Plumbing",priority:"High",status:"In Progress",statusBg:T.warningBg,statusColor:T.warningText,date:callDate},
+{id:"WO-5089",resident:"Sarah Kim",unit:"A-108",issue:"Dishwasher — Water Leaking",category:"Appliance",priority:"High",status:"Resolved",statusBg:T.successBg,statusColor:T.successText,date:new Date(callDate.getTime()-7*86400000)},
+{id:"WO-5071",resident:"James Patel",unit:"C-305",issue:"HVAC — Filter Replacement",category:"HVAC",priority:"Normal",status:"Resolved",statusBg:T.successBg,statusColor:T.successText,date:new Date(callDate.getTime()-14*86400000)},
+{id:"WO-5058",resident:"Olivia Chen",unit:"B-102",issue:"Door Lock — Keypad Unresponsive",category:"Security",priority:"Normal",status:"Resolved",statusBg:T.successBg,statusColor:T.successText,date:new Date(callDate.getTime()-21*86400000)},
+{id:"WO-5042",resident:"DeShawn Walker",unit:"A-210",issue:"Ceiling Fan — Not Working",category:"Electrical",priority:"Normal",status:"Resolved",statusBg:T.successBg,statusColor:T.successText,date:new Date(callDate.getTime()-28*86400000)},
+{id:"WO-5029",resident:"Priya Nair",unit:"C-401",issue:"Bathroom Faucet — Dripping",category:"Plumbing",priority:"Low",status:"Resolved",statusBg:T.successBg,statusColor:T.successText,date:new Date(callDate.getTime()-35*86400000)}];
+const CallHistory=()=>(<div style={{padding:24,maxWidth:1280,margin:"0 auto"}}>
+<div style={cardS}>
+<div style={{padding:"10px 16px",borderBottom:`1px solid ${T.cardBorder}`,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:700}}>Resident Call History</span><span style={pill(T.tealBg,T.tealText)}>{CALL_HISTORY.length}</span></div>
+<div style={{overflowX:"auto"}}>
+<div style={{display:"grid",gridTemplateColumns:"110px 1fr 120px 100px 120px 100px",padding:"8px 16px",borderBottom:`1px solid ${T.cardBorder}`,fontSize:11,fontWeight:600,color:T.textMuted,textTransform:"uppercase",letterSpacing:0.5,minWidth:700}}><div>Work Order</div><div>Resident / Issue</div><div>Category</div><div>Priority</div><div>Status</div><div>Date</div></div>
+{CALL_HISTORY.map(r=>(
+<div key={r.id} style={{display:"grid",gridTemplateColumns:"110px 1fr 120px 100px 120px 100px",padding:"12px 16px",borderBottom:`1px solid ${T.cardBorder}`,alignItems:"center",fontSize:13,minWidth:700,background:r.id==="WO-5103"?"#FEFCE8":T.cardBg}}>
+<div style={{fontWeight:600,color:T.primary,fontSize:12}}>{r.id}</div>
+<div><div style={{fontWeight:500}}>{r.resident}</div><div style={{fontSize:11,color:T.textMuted}}>Unit {r.unit} • {r.issue}</div></div>
+<div style={{fontSize:12,color:T.textSecondary}}>{r.category}</div>
+<div><span style={pill(r.priority==="High"?T.dangerBg:r.priority==="Normal"?"#F3F4F6":T.tealBg,r.priority==="High"?T.dangerText:r.priority==="Normal"?T.textSecondary:T.tealText)}>● {r.priority}</span></div>
+<div><span style={pill(r.statusBg,r.statusColor)}>● {r.status}</span></div>
+<div style={{fontSize:12,color:T.textMuted}}>{fmtShort(r.date)}</div>
+</div>))}</div></div></div>);
 
 const Res=({assigned})=>(<div style={{padding:"0 0 24px"}}>
 <div style={{padding:"12px 16px 8px",display:"flex",justifyContent:"space-between"}}>
@@ -344,22 +370,34 @@ const Res=({assigned})=>(<div style={{padding:"0 0 24px"}}>
 <div style={{padding:"0 16px"}}>
 <div style={{display:"flex",borderBottom:`2px solid ${C.border}`,marginBottom:16}}>
 {["Messages","Activity"].map(t=><button key={t} onClick={()=>setMsgTab(t.toLowerCase())} style={{background:"none",border:"none",padding:"10px 16px",fontSize:14,fontWeight:msgTab===t.toLowerCase()?700:400,color:msgTab===t.toLowerCase()?C.textPrimary:C.textMuted,borderBottom:msgTab===t.toLowerCase()?`2px solid ${C.textPrimary}`:"2px solid transparent",cursor:"pointer",marginBottom:-2}}>{t}</button>)}</div>
-{msgTab==="messages"&&<><MsgB text={`Hi Marcus! The part for your WO-5103 Water Heater has been purchased. We expect to receive it on ${fmt(arrivalDate)}. We'll send another confirmation after the part is delivered and a technician has been assigned!`} date={callDate}/>
-{assigned&&<MsgB text="Hi Marcus! The part for your WO-5103 has been received. Our technician Alan will reach out to you to coordinate a time." date={arrivalDate}/>}</>}
+{msgTab==="messages"&&(!assigned
+?<>{sentMsgs.length===0&&<div style={{textAlign:"center",color:C.textMuted,fontSize:13,padding:"24px 0"}}>No messages yet</div>}
+{sentMsgs.map((m,i)=>(<div key={i} style={{marginBottom:16,display:"flex",flexDirection:"column",alignItems:"flex-end"}}>
+<div style={{background:C.purple,borderRadius:12,padding:14,maxWidth:"90%"}}><p style={{fontSize:14,color:"#fff",lineHeight:1.6,margin:0}}>{m.text}</p></div>
+<div style={{fontSize:11,color:C.textMuted,paddingRight:4,marginTop:4}}>{fmtTS(m.date)}</div></div>))}</>
+:[
+{type:"agent",text:`Hi Marcus! The part for your WO-5103 Water Heater has been purchased. We expect to receive it on ${fmt(arrivalDate)}. We'll send another confirmation after the part is delivered and a technician has been assigned!`,date:callDate},
+{type:"agent",text:"Hi Marcus! The part for your WO-5103 has been received. Our technician Alan will reach out to you to coordinate a time.",date:arrivalDate},
+...sentMsgs.map(m=>({type:"user",text:m.text,date:m.date}))
+].sort((a,b)=>a.date-b.date).map((msg,i)=>msg.type==="agent"
+?<MsgB key={i} text={msg.text} date={msg.date}/>
+:<div key={i} style={{marginBottom:16,display:"flex",flexDirection:"column",alignItems:"flex-end"}}>
+<div style={{background:C.purple,borderRadius:12,padding:14,maxWidth:"90%"}}><p style={{fontSize:14,color:"#fff",lineHeight:1.6,margin:0}}>{msg.text}</p></div>
+<div style={{fontSize:11,color:C.textMuted,paddingRight:4,marginTop:4}}>{fmtTS(msg.date)}</div></div>))}
 {msgTab==="activity"&&<div style={{fontSize:13,color:C.textMuted,padding:"12px 0"}}>
 {[["Work order WO-5103 created",callDate],["Part ordered — Igniter assembly",callDate],...(assigned?[["Part received — Igniter assembly",arrivalDate],["Technician Alan assigned",arrivalDate]]:[])].map(([t,d],i)=>(
 <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
 <div style={{width:6,height:6,borderRadius:"50%",background:C.purple,flexShrink:0}}/>
 <span style={{flex:1}}>{t}</span><span style={{fontSize:11}}>{fmtTS(d)}</span></div>))}</div>}</div>
 <div style={{padding:"12px 16px 0"}}>
-<div style={{border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:C.textMuted,marginBottom:10}}>Send a message</div>
+<textarea value={msgInput} onChange={e=>setMsgInput(e.target.value)} placeholder="Send a message" rows={3} style={{width:"100%",border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",fontSize:14,color:C.textPrimary,marginBottom:10,resize:"none",minHeight:72,fontFamily:T.font,outline:"none",boxSizing:"border-box"}}/>
 <div style={{display:"flex",justifyContent:"space-between"}}>
 <button style={{background:"none",border:`1px solid ${C.border}`,borderRadius:20,padding:"6px 14px",fontSize:12,color:C.textSecondary}}>Add attachment</button>
-<button style={{background:C.purple,color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600}}>Send</button></div></div></div>);
+<button onClick={()=>{if(msgInput.trim()){setSentMsgs(p=>[...p,{text:msgInput.trim(),date:new Date()}]);setMsgInput("");}}} style={{background:C.purple,color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",fontSize:13,fontWeight:600,cursor:"pointer"}}>Send</button></div></div></div>);
 
 return(<div style={{fontFamily:T.font,background:T.bodyBg,minHeight:"100vh",color:T.textPrimary}}>
 <div style={{background:T.cardBg,borderBottom:`1px solid ${T.cardBorder}`,padding:"12px 24px"}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+<div style={{maxWidth:1400,margin:"0 auto"}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
 <div style={{fontSize:13,fontWeight:700}}>Maintenance Concierge — WO-5103 Flow</div>
 <div style={{display:"flex",gap:8}}>
 <button onClick={()=>{setStep(Math.max(0,step-1));setMsgTab("messages");}} disabled={step===0} style={{background:step===0?T.cardBorder:T.primary,color:step===0?T.textMuted:"#fff",border:"none",borderRadius:6,padding:"6px 16px",fontSize:12,fontWeight:600,cursor:step===0?"not-allowed":"pointer"}}>← Previous</button>
@@ -368,19 +406,19 @@ return(<div style={{fontFamily:T.font,background:T.bodyBg,minHeight:"100vh",colo
 {STEPS.map((s,i)=>(<button key={s.id} onClick={()=>{setStep(i);setMsgTab("messages");}} style={{flex:1,padding:"8px 8px",borderRadius:6,border:"none",cursor:"pointer",background:i===step?(s.actor==="Operator"?T.primaryLight:"#FEE2E2"):T.bodyBg,display:"flex",alignItems:"center",gap:6,transition:"all 0.2s ease"}}>
 <span style={{fontSize:14}}>{s.icon}</span>
 <div style={{textAlign:"left"}}><div style={{fontSize:10,fontWeight:600,color:i===step?T.primary:T.textMuted,textTransform:"uppercase",letterSpacing:0.5}}>{s.actor}</div>
-<div style={{fontSize:11,fontWeight:i===step?700:500,color:i===step?T.textPrimary:T.textSecondary,whiteSpace:"nowrap"}}>{s.label}</div></div></button>))}</div></div>
+<div style={{fontSize:11,fontWeight:i===step?700:500,color:i===step?T.textPrimary:T.textSecondary,whiteSpace:"nowrap"}}>{s.label}</div></div></button>))}</div></div></div>
 
 {isOp?(<><TopNav extra={liveInd}/>
 <div style={{display:"flex",minHeight:"calc(100vh - 140px)"}}>
 <SB nav={nav} setNav={setNav}/>
 <main style={{flex:1,overflow:"auto"}}>
-{step===0&&<P2/>}
+{step===0&&P2()}
 {step===1&&<><div style={{background:T.cardBg,borderBottom:`1px solid ${T.cardBorder}`,padding:"14px 28px",display:"flex",alignItems:"center",gap:10}}>
-<span style={{fontSize:18}}>📝</span><h1 style={{fontSize:22,fontWeight:700,margin:0}}>Tasks</h1>
-<div style={pill(T.tealBg,T.tealText)}><span style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>Work Orders</div></div><Op1/></>}
+<span style={{fontSize:18}}>📋</span><h1 style={{fontSize:22,fontWeight:700,margin:0}}>Work Order</h1>
+<div style={pill(T.tealBg,T.tealText)}><span style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>Work Orders</div></div>{nav==="call-history"?CallHistory():Op1()}</>}
 {step===3&&<><div style={{background:T.cardBg,borderBottom:`1px solid ${T.cardBorder}`,padding:"14px 28px",display:"flex",alignItems:"center",gap:10}}>
-<span style={{fontSize:18}}>📝</span><h1 style={{fontSize:22,fontWeight:700,margin:0}}>Tasks</h1>
-<div style={pill(T.tealBg,T.tealText)}><span style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>Work Orders</div></div><Op2/></>}
+<span style={{fontSize:18}}>📋</span><h1 style={{fontSize:22,fontWeight:700,margin:0}}>Work Order</h1>
+<div style={pill(T.tealBg,T.tealText)}><span style={{width:6,height:6,borderRadius:"50%",background:T.teal}}/>Work Orders</div></div>{Op2()}</>}
 </main></div></>)
 :(<div style={{background:"#F3F4F6",minHeight:"calc(100vh - 90px)"}}>
 {step===2&&<PF><Res assigned={false}/></PF>}
@@ -416,4 +454,9 @@ return(<div style={{fontFamily:T.font,background:T.bodyBg,minHeight:"100vh",colo
 *{box-sizing:border-box}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
 button:hover{opacity:.92}
+@media(max-width:1100px){.call-grid{grid-template-columns:1fr!important}}
+@media(max-width:768px){
+  aside{display:none!important}
+  .call-grid{grid-template-columns:1fr!important}
+}
 `}</style></div>);}
